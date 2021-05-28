@@ -49,13 +49,13 @@ func main() {
 	}
 
 	err = filepath.Walk("files", func(path string, info os.FileInfo, err error) error {
-		sum++
 		if info.IsDir() || info.Name() == ".gitkeep" {
 			return nil
 		}
 		if err != nil {
 			return err
 		}
+		sum++
 		log.Printf("reading file %s\n", path)
 		data := &tableData{}
 
