@@ -13,6 +13,7 @@ import (
 
 type tableData struct {
 	Operation      string
+	CryptoCurrency string
 	CryptoAmount   string
 	InvestedAmount string
 	ReceivedAmount string
@@ -23,6 +24,7 @@ type tableData struct {
 func (td *tableData) ToSlice() []string {
 	data := make([]string, 0)
 	data = append(data, td.Operation)
+	data = append(data, td.CryptoCurrency)
 	data = append(data, td.CryptoAmount)
 	data = append(data, td.InvestedAmount)
 	data = append(data, td.ReceivedAmount)
@@ -32,10 +34,11 @@ func (td *tableData) ToSlice() []string {
 }
 
 func main() {
+	log.Println("stating parser...")
 	sum := 0
 
 	// create csv output file
-	file, err := os.Create("result.csv")
+	file, err := os.Create("output/result.csv")
 	if err != nil {
 		log.Fatal("creating file", err)
 	}
@@ -44,7 +47,7 @@ func main() {
 	defer csvWriter.Flush()
 
 	// write header
-	if err := csvWriter.Write([]string{"Operacion", "Cantidad", "Monto invertido", "Monto recibido", "Cotizacion", "Fecha"}); err != nil {
+	if err := csvWriter.Write([]string{"Operacion", "Moneda", "Cantidad", "Monto invertido", "Monto recibido", "Cotizacion", "Fecha"}); err != nil {
 		log.Fatal("writing to file", err)
 	}
 
@@ -56,7 +59,7 @@ func main() {
 			return err
 		}
 		sum++
-		log.Printf("reading file %s\n", path)
+		log.Printf("parsing file %s\n", path)
 		data := &tableData{}
 
 		res, err := docconv.ConvertPath(path)
@@ -65,25 +68,16 @@ func main() {
 		}
 
 		lines := strings.Split(res.Body, "\n")
-		spplitedValues := strings.Split(lines[8], " ")
 
-		operation := spplitedValues[0]
-		data.Operation = operation + " " + spplitedValues[1]
-		data.CryptoAmount = spplitedValues[3]
+		date := strings.Split(lines[26], " ")[0]
+		data.Date = date
 
-		var amount, price string
-		if len(spplitedValues) == 8 {
-			price = spplitedValues[4] + " " + spplitedValues[5]
-			amount = spplitedValues[6] + " " + spplitedValues[7]
-		} else if len(spplitedValues) == 6 {
-			price = spplitedValues[4] + " " + spplitedValues[5]
-			spplitedValues = strings.Split(lines[9], " ")
-			amount = spplitedValues[0] + " " + spplitedValues[1]
-		} else if len(spplitedValues) == 4 {
-			spplitedValues = strings.Split(lines[9], " ")
-			price = spplitedValues[0] + " " + spplitedValues[1]
-			amount = spplitedValues[2] + " " + spplitedValues[3]
-		}
+		data.CryptoCurrency = lines[27]
+		operation := strings.Split(lines[28], " ")[0]
+		data.Operation = operation
+		data.CryptoAmount = strings.Split(lines[29], " ")[1]
+		data.Price = lines[30]
+		amount := lines[31]
 
 		if operation == "Compra" {
 			data.InvestedAmount = amount
@@ -94,9 +88,6 @@ func main() {
 		} else {
 			return fmt.Errorf("unkown operation: %s", operation)
 		}
-		data.Price = price
-		date := strings.Split(lines[7], " ")[0]
-		data.Date = date
 
 		// write data
 		values := data.ToSlice()
@@ -108,6 +99,7 @@ func main() {
 	})
 
 	log.Printf("processed files: %d\n", sum)
+	log.Println("writing output/result.csv")
 
 	if err != nil {
 		log.Fatal(err)

@@ -15,4 +15,4 @@
 *.class
 *.log
 files/*.pdf
-*.csv
+output/*.csv
